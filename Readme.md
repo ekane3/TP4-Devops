@@ -18,7 +18,15 @@ Pour installer Terraform, Microsoft a pris la peine de nous faire une belle docu
 
 - Etape 1 :  
 
-Créez un répertoire dans lequelvous allez implémenter votre code Terraform et définissez-le comme répertoire actuel.  
+Créez un répertoire dans lequel vous allez implémenter votre code Terraform et définissez-le comme répertoire actuel.  
+
+- Etape 2 : 
+Créez un fichier nommé `data.tf`et insérez le code suivant :
+```
+data "azurerm_resource_group" "tp4" {
+  name      = "devops-TP2"
+}
+``` 
 
 - Etape 2 : 
 Créez un fichier nommé `providers.tf`et insérez le code suivant :
@@ -45,44 +53,33 @@ provider "azurerm" {
 - Etape 3:
 Créez un fichier nommé main.tf et insérer le code suivant:  
 ```
-resource "random_pet" "tp-name" {
-  prefix    = var.resource_group_name_prefix
-}
-
-resource "azurerm_resource_group" "tp4" {
-  name      = random_pet.tp-name.id
-  location  = var.resource_group_location
-}
 
 # Create virtual network
-resource "azurerm_virtual_network" "myterraformnetwork" {
-  name                = "myVnet"
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.tp4.location
-  resource_group_name = azurerm_resource_group.tp4.name
+data "azurerm_virtual_network" "myterraformnetwork" {
+  name                = "example-network"
+  resource_group_name = data.azurerm_resource_group.tp4.name
 }
 
 # Create subnet
-resource "azurerm_subnet" "myterraformsubnet" {
-  name                 = "mySubnet"
-  resource_group_name  = azurerm_resource_group.tp4.name
-  virtual_network_name = azurerm_virtual_network.myterraformnetwork.name
-  address_prefixes     = ["10.0.1.0/24"]
+data "azurerm_subnet" "myterraformsubnet" {
+  name                 = "internal"
+  resource_group_name  = data.azurerm_resource_group.tp4.name
+  virtual_network_name = data.azurerm_virtual_network.myterraformnetwork.name
 }
 
 # Create public IPs
 resource "azurerm_public_ip" "myterraformpublicip" {
   name                = "myPublicIP"
-  location            = azurerm_resource_group.tp4.location
-  resource_group_name = azurerm_resource_group.tp4.name
+  resource_group_name = data.azurerm_resource_group.tp4.name
+  location            = data.azurerm_resource_group.tp4.location
   allocation_method   = "Dynamic"
 }
 
 # Create Network Security Group and rule
 resource "azurerm_network_security_group" "myterraformnsg" {
   name                = "myNetworkSecurityGroup"
-  location            = azurerm_resource_group.tp4.location
-  resource_group_name = azurerm_resource_group.tp4.name
+  location = data.azurerm_resource_group.tp4.location
+  resource_group_name = data.azurerm_resource_group.tp4.name
 
   security_rule {
     name                       = "SSH"
@@ -95,17 +92,18 @@ resource "azurerm_network_security_group" "myterraformnsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
 }
 
 # Create network interface
 resource "azurerm_network_interface" "myterraformnic" {
-  name                = "myNIC"
-  location            = azurerm_resource_group.tp4.location
-  resource_group_name = azurerm_resource_group.tp4.name
+  name = "myNetworkinter"
+  location = data.azurerm_resource_group.tp4.location
+  resource_group_name = data.azurerm_resource_group.tp4.name
 
-  ip_configuration {
-    name                          = "myNicConfiguration"
-    subnet_id                     = azurerm_subnet.myterraformsubnet.id
+    ip_configuration {
+    name                          = "internal"
+    subnet_id                     = data.azurerm_subnet.myterraformsubnet.id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.myterraformpublicip.id
   }
@@ -121,20 +119,17 @@ resource "azurerm_network_interface_security_group_association" "example" {
 resource "random_id" "randomId" {
   keepers = {
     # Generate a new ID only when a new resource group is defined
-    resource_group = azurerm_resource_group.tp4.name
+    resource_group = data.azurerm_resource_group.tp4.name
   }
 
   byte_length = 8
 }
 
 # Create storage account for boot diagnostics
-resource "azurerm_storage_account" "mystorageaccount" {
-  name                     = "diag${random_id.randomId.hex}"
-  location                 = azurerm_resource_group.tp4.location
-  resource_group_name      = azurerm_resource_group.tp4.name
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-}
+#data "azurerm_storage_account" "mystorageaccount" {
+ # name                     = ""
+ # resource_group_name      = data.azurerm_resource_group.tp4.name
+#}
 
 # Create (and display) an SSH key
 resource "tls_private_key" "example_ssh" {
@@ -147,13 +142,13 @@ resource "tls_private_key" "example_ssh" {
 # Create virtual machine
 resource "azurerm_linux_virtual_machine" "myterraformvm" {
   name                  = "devops-20211212"
-  location              = azurerm_resource_group.tp4.location #"france central" 
-  resource_group_name   = azurerm_resource_group.tp4.name
+  location              = data.azurerm_resource_group.tp4.location #"france central" 
+  resource_group_name   = data.azurerm_resource_group.tp4.name
   network_interface_ids = [azurerm_network_interface.myterraformnic.id]
   size                  = "Standard_D2s_v3"
 
   os_disk {
-    name                 = "myOsDisk"
+    name                 = "tp4OsDisk_ter"
     caching              = "ReadWrite"
     storage_account_type = "Premium_LRS"
   }
@@ -174,23 +169,9 @@ resource "azurerm_linux_virtual_machine" "myterraformvm" {
     public_key = tls_private_key.example_ssh.public_key_openssh
   }
 
-  boot_diagnostics {
-    storage_account_uri = azurerm_storage_account.mystorageaccount.primary_blob_endpoint
-  }
-}
-```
-
-- Etape 4:
-Créez un fichier nommé variables.tf et insérez le code suivant :
-```
-variable "resource_group_name_prefix" {
-  default       = "devops-TP"
-  description   = "Prefix of the resource group name that's combined with a random ID so name is unique in your Azure subscription."
-}
-
-variable "resource_group_location" {
-  default       = "france central"
-  description   = "Location of the resource group."
+  #boot_diagnostics {
+  #  storage_account_uri = data.azurerm_storage_account.mystorageaccount.primary_blob_endpoint
+ # }
 }
 ```
 
@@ -198,7 +179,7 @@ variable "resource_group_location" {
 Créez un fichier nommé output.tf et insérez le code suivant :
 ```
 output "resource_group_name" {
-  value = azurerm_resource_group.tp4.name
+  value = data.azurerm_resource_group.tp4.name
 }
 
 output "public_ip_address" {
