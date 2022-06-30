@@ -28,7 +28,7 @@ data "azurerm_resource_group" "tp4" {
 }
 ``` 
 
-- Etape 2 : 
+- Etape 3 : 
 Créez un fichier nommé `providers.tf`et insérez le code suivant :
 ```
 terraform {
@@ -50,7 +50,7 @@ provider "azurerm" {
 }
 ```  
 
-- Etape 3:
+- Etape 4:
 Créez un fichier nommé main.tf et insérer le code suivant:  
 ```
 
@@ -230,10 +230,6 @@ Terraform has been successfully initialized!
 - Etape 2 : Créer un plan d'éxécution Terraform
 ```cmd
 terraform plan -out main.tfplan
-```
-Results:
-```cmd
-
 ```
 
 - Etape 3 : Appliquer le plan d'éxecution
