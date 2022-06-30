@@ -252,5 +252,17 @@ terraform output public_ip_address
 ```
 3. Utilisons le SSH pour se connecter a la machine virtuelle.
 ```cmd
-ssh -i id_rsa devops@<public_ip_address>
+ssh -i id_rsa devops@XX.XXX.XX.XXX
 ```
+
+Mais, on obtient une erreur car on ne peut pas utiliser la clé. Faut donc qu'on change les droits d'Utilisation de la clé.  
+```cmd
+sudo chmod 600 cle_fichier
+```  
+
+Après on re-exécute la commande supérieur. 
+
+4. On supprime a la fin notre VM avec la commande suivante :
+```cmd
+terraform destroy
+``` 
