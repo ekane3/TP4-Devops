@@ -260,10 +260,20 @@ Results:
 terraform apply main.tfplan
 ```
 
+### Vérifier les résultats   
 
-### Comparaison entre Github Actions et Terraform  
+Pour se connecter a la machine virtuellle , on procède comme suit : 
 
+1. Exécution de la sortie terraform pour obtenir la clé privée SSH et l'enregistrer dans un fichier.
+```cmd
+terraform output -raw tls_private_key > id_rsa
+```  
 
-> This is a TP to work with Terraform
-
-### Error
+2. Exécution de la sortie terraform pour obtenir l'adresse IP publique de la machine virtuelle.  
+```cmd
+terraform output public_ip_address
+```
+3. Utilisons le SSH pour se connecter a la machine virtuelle.
+```cmd
+ssh -i id_rsa devops@<public_ip_address>
+```
